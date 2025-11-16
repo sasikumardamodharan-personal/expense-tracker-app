@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- Background -->
+    <path
+        android:fillColor="#6750A4"
+        android:pathData="M0,0 L48,0 L48,48 L0,48 Z"/>
+    <!-- Dollar sign -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M18,12 C18,8.7 20.7,6 24,6 C27.3,6 30,8.7 30,12 L27,12 C27,10.3 25.7,9 24,9 C22.3,9 21,10.3 21,12 C21,13.7 22.3,15 24,15 L26,15 C29.3,15 32,17.7 32,21 C32,24.3 29.3,27 26,27 C22.7,27 20,24.3 20,21 L23,21 C23,22.7 24.3,24 26,24 C27.7,24 29,22.7 29,21 C29,19.3 27.7,18 26,18 L24,18 C20.7,18 18,15.3 18,12 Z"/>
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M25,6 L25,27 L23,27 L23,6 Z"/>
+    <!-- Receipt lines -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M14,32 L34,32 L34,33 L14,33 Z"/>
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M14,36 L32,36 L32,37 L14,37 Z"/>
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M14,40 L30,40 L30,41 L14,41 Z"/>
+</vector>

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:scaleX="0.5"
+        android:scaleY="0.5"
+        android:translateX="27"
+        android:translateY="27">
+        <!-- Dollar sign icon for expense tracker -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M27,10 C27,4.5 31.5,0 37,0 C42.5,0 47,4.5 47,10 L42,10 C42,7.2 39.8,5 37,5 C34.2,5 32,7.2 32,10 C32,12.8 34.2,15 37,15 L40,15 C45.5,15 50,19.5 50,25 C50,30.5 45.5,35 40,35 C34.5,35 30,30.5 30,25 L35,25 C35,27.8 37.2,30 40,30 C42.8,30 45,27.8 45,25 C45,22.2 42.8,20 40,20 L37,20 C31.5,20 27,15.5 27,10 Z"/>
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M38.5,0 L38.5,40 L33.5,40 L33.5,0 Z"/>
+        <!-- Receipt/document lines -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M15,45 L60,45 L60,48 L15,48 Z"/>
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M15,52 L55,52 L55,55 L15,55 Z"/>
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M15,59 L50,59 L50,62 L15,62 Z"/>
+    </group>
+</vector>

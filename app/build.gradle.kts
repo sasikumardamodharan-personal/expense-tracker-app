@@ -3,6 +3,8 @@ plugins {
     id("org.jetbrains.kotlin.android")
     id("com.google.dagger.hilt.android")
     id("com.google.devtools.ksp")
+    // Add the Google services Gradle plugin
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -93,6 +95,22 @@ dependencies {
     val pagingVersion = "3.2.1"
     implementation("androidx.paging:paging-runtime-ktx:$pagingVersion")
     implementation("androidx.paging:paging-compose:$pagingVersion")
+
+    // Firebase (with explicit versions for reliability)
+    implementation("com.google.firebase:firebase-auth-ktx:22.3.1")
+    implementation("com.google.firebase:firebase-firestore-ktx:24.10.1")
+    implementation("com.google.firebase:firebase-common-ktx:20.4.2")
+    
+    // Google Sign-In
+    implementation("com.google.android.gms:play-services-auth:21.0.0")
+    
+    // WorkManager (for background sync)
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
+    implementation("androidx.hilt:hilt-work:1.1.0")
+    ksp("androidx.hilt:hilt-compiler:1.1.0")
+    
+    // Coil (for user avatars)
+    implementation("io.coil-kt:coil-compose:2.5.0")
 
     // Testing
     testImplementation("junit:junit:4.13.2")

@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Expense Tracker</string>
+    
+    <!-- Web Client ID from Firebase Console for Google Sign-In -->
+    <string name="default_web_client_id">1081947747424-btorkl9j2510sr00cns0o4opjr6rjpue.apps.googleusercontent.com</string>
 </resources>

@@ -22,11 +22,16 @@ import com.expensetracker.app.presentation.viewmodel.SettingsViewModel
 fun SettingsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToCategoryManagement: () -> Unit,
-    viewModel: SettingsViewModel = hiltViewModel()
+    onSignOut: () -> Unit,
+    viewModel: SettingsViewModel = hiltViewModel(),
+    authViewModel: com.expensetracker.app.presentation.viewmodel.AuthViewModel = hiltViewModel()
 ) {
     val selectedCurrency by viewModel.selectedCurrency.collectAsStateWithLifecycle()
     val exportState by viewModel.exportState.collectAsStateWithLifecycle()
+    val authState by authViewModel.authState.collectAsStateWithLifecycle()
     val context = androidx.compose.ui.platform.LocalContext.current
+    
+    var showSignOutDialog by remember { mutableStateOf(false) }
     
     // Handle export state
     LaunchedEffect(exportState) {
@@ -63,8 +68,58 @@ fun SettingsScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            // User Profile Section
+            item {
+                Text(
+                    text = "Profile",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            }
+            
+            item {
+                when (val state = authState) {
+                    is com.expensetracker.app.domain.model.AuthState.Authenticated -> {
+                        Card(
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = state.user.displayName,
+                                    style = MaterialTheme.typography.titleLarge
+                                )
+                                Text(
+                                    text = state.user.email,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                
+                                Spacer(modifier = Modifier.height(8.dp))
+                                
+                                Button(
+                                    onClick = { showSignOutDialog = true },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.error
+                                    )
+                                ) {
+                                    Text("Sign Out")
+                                }
+                            }
+                        }
+                    }
+                    else -> {}
+                }
+            }
+            
             // Currency Section
             item {
+                Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = "Currency",
                     style = MaterialTheme.typography.titleMedium,
@@ -162,6 +217,31 @@ fun SettingsScreen(
                     }
                 }
             }
+        }
+        
+        // Sign Out Confirmation Dialog
+        if (showSignOutDialog) {
+            AlertDialog(
+                onDismissRequest = { showSignOutDialog = false },
+                title = { Text("Sign Out") },
+                text = { Text("Are you sure you want to sign out?") },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showSignOutDialog = false
+                            authViewModel.signOut()
+                            onSignOut()
+                        }
+                    ) {
+                        Text("Sign Out")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showSignOutDialog = false }) {
+                        Text("Cancel")
+                    }
+                }
+            )
         }
     }
 }

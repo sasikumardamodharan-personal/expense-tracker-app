@@ -4,6 +4,7 @@ package com.expensetracker.app.presentation.navigation
  * Navigation routes for the Expense Tracker app
  */
 object NavigationRoutes {
+    const val SIGN_IN = "sign_in"
     const val EXPENSE_LIST = "expense_list"
     const val ADD_EXPENSE = "add_expense"
     const val EDIT_EXPENSE = "edit_expense/{expenseId}"

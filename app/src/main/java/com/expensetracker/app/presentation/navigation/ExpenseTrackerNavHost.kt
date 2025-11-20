@@ -13,6 +13,7 @@ import com.expensetracker.app.presentation.screens.CategoryManagementScreen
 import com.expensetracker.app.presentation.screens.ExpenseListScreen
 import com.expensetracker.app.presentation.screens.FilterScreen
 import com.expensetracker.app.presentation.screens.SettingsScreen
+import com.expensetracker.app.presentation.screens.SignInScreen
 import com.expensetracker.app.presentation.screens.SummaryScreen
 import com.expensetracker.app.ui.theme.*
 
@@ -23,17 +24,33 @@ import com.expensetracker.app.ui.theme.*
 @Composable
 fun ExpenseTrackerNavHost(
     navController: NavHostController,
+    startDestination: String,
     modifier: Modifier = Modifier
 ) {
     NavHost(
         navController = navController,
-        startDestination = NavigationRoutes.EXPENSE_LIST,
+        startDestination = startDestination,
         modifier = modifier,
         enterTransition = { slideInFromRight() },
         exitTransition = { slideOutToLeft() },
         popEnterTransition = { slideInFromRight() },
         popExitTransition = { slideOutToLeft() }
     ) {
+        // Sign In Screen
+        composable(
+            route = NavigationRoutes.SIGN_IN,
+            enterTransition = { fadeIn(animationSpec = fadeInSpec()) },
+            exitTransition = { fadeOut(animationSpec = fadeOutSpec()) }
+        ) {
+            SignInScreen(
+                onSignInSuccess = {
+                    navController.navigate(NavigationRoutes.EXPENSE_LIST) {
+                        popUpTo(NavigationRoutes.SIGN_IN) { inclusive = true }
+                    }
+                }
+            )
+        }
+        
         // Expense List Screen (Start Destination)
         composable(
             route = NavigationRoutes.EXPENSE_LIST,
@@ -163,6 +180,11 @@ fun ExpenseTrackerNavHost(
                 },
                 onNavigateToCategoryManagement = {
                     navController.navigate(NavigationRoutes.CATEGORY_MANAGEMENT)
+                },
+                onSignOut = {
+                    navController.navigate(NavigationRoutes.SIGN_IN) {
+                        popUpTo(0) { inclusive = true }
+                    }
                 }
             )
         }

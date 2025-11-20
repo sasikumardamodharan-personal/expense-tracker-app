@@ -25,6 +25,24 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val selectedCurrency by viewModel.selectedCurrency.collectAsStateWithLifecycle()
+    val exportState by viewModel.exportState.collectAsStateWithLifecycle()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    
+    // Handle export state
+    LaunchedEffect(exportState) {
+        when (val state = exportState) {
+            is com.expensetracker.app.presentation.viewmodel.ExportState.Success -> {
+                // Create and share CSV file
+                shareCSV(context, state.csvContent)
+                viewModel.resetExportState()
+            }
+            is com.expensetracker.app.presentation.viewmodel.ExportState.Error -> {
+                android.widget.Toast.makeText(context, state.message, android.widget.Toast.LENGTH_LONG).show()
+                viewModel.resetExportState()
+            }
+            else -> {}
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -98,7 +116,89 @@ fun SettingsScreen(
                     }
                 }
             }
+            
+            // Data Management Section
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Data Management",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            }
+            
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            enabled = exportState !is com.expensetracker.app.presentation.viewmodel.ExportState.Loading,
+                            onClick = { viewModel.exportExpenses() }
+                        )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Export Data",
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Text(
+                                text = "Export all expenses as CSV file",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        
+                        if (exportState is com.expensetracker.app.presentation.viewmodel.ExportState.Loading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                }
+            }
         }
+    }
+}
+
+private fun shareCSV(context: android.content.Context, csvContent: String) {
+    try {
+        // Create a temporary file
+        val filename = com.expensetracker.app.util.CsvExporter.generateFilename()
+        val file = java.io.File(context.cacheDir, filename)
+        file.writeText(csvContent)
+        
+        // Create content URI using FileProvider
+        val uri = androidx.core.content.FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            file
+        )
+        
+        // Create share intent
+        val shareIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+            type = "text/csv"
+            putExtra(android.content.Intent.EXTRA_STREAM, uri)
+            putExtra(android.content.Intent.EXTRA_SUBJECT, "Expense Tracker Data")
+            putExtra(android.content.Intent.EXTRA_TEXT, "Exported expense data from Expense Tracker")
+            addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        
+        // Show share sheet
+        context.startActivity(
+            android.content.Intent.createChooser(shareIntent, "Export Expenses")
+        )
+    } catch (e: Exception) {
+        android.widget.Toast.makeText(
+            context,
+            "Failed to share file: ${e.message}",
+            android.widget.Toast.LENGTH_LONG
+        ).show()
     }
 }
 

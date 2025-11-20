@@ -9,6 +9,8 @@ object NavigationRoutes {
     const val EDIT_EXPENSE = "edit_expense/{expenseId}"
     const val FILTER = "filter"
     const val SUMMARY = "summary"
+    const val CATEGORY_MANAGEMENT = "category_management"
+    const val SETTINGS = "settings"
     
     /**
      * Creates the route for editing an expense with the given ID

@@ -69,6 +69,56 @@ class CategoryRepositoryImpl @Inject constructor(
         }
     }
     
+    override suspend fun updateCategory(category: Category): Result<Unit> {
+        return try {
+            Log.d(TAG, "Updating category: ${category.name}")
+            
+            // Validate name length
+            if (category.name.isEmpty() || category.name.length > 30) {
+                Log.w(TAG, "Invalid category name length: ${category.name.length}")
+                return Result.Error(
+                    Exception("Invalid category name"),
+                    "Category name must be between 1 and 30 characters"
+                )
+            }
+            
+            // Check for uniqueness (excluding current category)
+            val existing = categoryDao.getCategoryByName(category.name)
+            if (existing != null && existing.id != category.id) {
+                Log.w(TAG, "Category name already exists: ${category.name}")
+                return Result.Error(
+                    Exception("Category already exists"),
+                    "A category with the name '${category.name}' already exists"
+                )
+            }
+            
+            categoryDao.updateCategory(category)
+            Log.d(TAG, "Category updated successfully: ${category.name}")
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to update category: ${category.name}", e)
+            Result.Error(
+                exception = e,
+                message = "Unable to update category. Please try again."
+            )
+        }
+    }
+    
+    override suspend fun deleteCategory(categoryId: Long): Result<Unit> {
+        return try {
+            Log.d(TAG, "Deleting category with id: $categoryId")
+            categoryDao.deleteCategory(categoryId)
+            Log.d(TAG, "Category deleted successfully")
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to delete category with id: $categoryId", e)
+            Result.Error(
+                exception = e,
+                message = "Unable to delete category. Please try again."
+            )
+        }
+    }
+    
     override suspend fun initializeDefaultCategories() {
         try {
             Log.d(TAG, "Initializing default categories")

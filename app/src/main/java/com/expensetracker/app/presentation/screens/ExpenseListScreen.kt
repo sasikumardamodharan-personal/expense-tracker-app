@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -36,15 +37,16 @@ fun ExpenseListScreen(
     onNavigateToEditExpense: (Long) -> Unit,
     onNavigateToFilter: () -> Unit,
     onNavigateToSummary: () -> Unit,
+    onNavigateToSettings: () -> Unit,
+    shouldRefresh: Boolean = false,
     viewModel: ExpenseListViewModel = hiltViewModel()
 ) {
     // Use collectAsStateWithLifecycle for lifecycle-aware collection
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val pagedExpenses = viewModel.pagedExpenses.collectAsLazyPagingItems()
     val filterCriteria by viewModel.filterCriteria.collectAsStateWithLifecycle()
+    val selectedCurrency by viewModel.selectedCurrency.collectAsStateWithLifecycle()
     
-    var expenseToDelete by remember { mutableStateOf<ExpenseWithCategory?>(null) }
-    var showDeleteDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val haptic = com.expensetracker.app.util.rememberHapticFeedback()
     
@@ -63,9 +65,17 @@ fun ExpenseListScreen(
         }
     }
     
-    // Refresh when screen becomes visible
+    // Initial load
     LaunchedEffect(Unit) {
         viewModel.refreshExpenses()
+    }
+    
+    // Refresh when returning from add/edit with saved expense
+    LaunchedEffect(shouldRefresh) {
+        if (shouldRefresh) {
+            viewModel.refreshExpenses()
+            pagedExpenses.refresh()
+        }
     }
     
     Scaffold(
@@ -99,8 +109,19 @@ fun ExpenseListScreen(
                         }
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Settings,
+                            imageVector = Icons.Default.Search,
                             contentDescription = "Filter expenses"
+                        )
+                    }
+                    IconButton(
+                        onClick = onNavigateToSettings,
+                        modifier = Modifier.semantics {
+                            contentDescription = "Settings button"
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "Settings"
                         )
                     }
                     TextButton(
@@ -145,9 +166,12 @@ fun ExpenseListScreen(
                     onNavigateToEditExpense = onNavigateToEditExpense,
                     onClearFilters = { viewModel.clearFilters() },
                     onDeleteExpense = { expense ->
-                        expenseToDelete = expense
-                        showDeleteDialog = true
+                        haptic.performStrongTap()
+                        viewModel.deleteExpense(expense)
+                        viewModel.refreshExpenses()
+                        pagedExpenses.refresh()
                     },
+                    currency = selectedCurrency,
                     modifier = Modifier.fillMaxSize()
                 )
             } else {
@@ -207,9 +231,12 @@ fun ExpenseListScreen(
                                         expense = expense,
                                         onClick = { onNavigateToEditExpense(expense.id) },
                                         onDelete = {
-                                            expenseToDelete = expense
-                                            showDeleteDialog = true
-                                        }
+                                            haptic.performStrongTap()
+                                            viewModel.deleteExpense(expense)
+                                            viewModel.refreshExpenses()
+                                            pagedExpenses.refresh()
+                                        },
+                                        currency = selectedCurrency
                                     )
                                 }
                             }
@@ -228,24 +255,6 @@ fun ExpenseListScreen(
         }
     }
     
-    // Delete confirmation dialog
-    if (showDeleteDialog && expenseToDelete != null) {
-        ConfirmationDialog(
-            title = "Delete Expense",
-            message = "Are you sure you want to delete this expense?",
-            confirmText = "Delete",
-            onConfirm = {
-                haptic.performStrongTap()
-                expenseToDelete?.let { viewModel.deleteExpense(it) }
-                showDeleteDialog = false
-                expenseToDelete = null
-            },
-            onDismiss = {
-                showDeleteDialog = false
-                expenseToDelete = null
-            }
-        )
-    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -309,23 +318,26 @@ private fun SwipeableExpenseItem(
     expense: ExpenseWithCategory,
     onClick: () -> Unit,
     onDelete: () -> Unit,
+    currency: com.expensetracker.app.domain.model.Currency,
     modifier: Modifier = Modifier
 ) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    
     val dismissState = rememberDismissState(
         confirmValueChange = {
             if (it == DismissValue.DismissedToStart) {
-                onDelete()
-                false // Return false to prevent auto-dismiss, let dialog handle it
+                showDeleteDialog = true
+                false // Don't dismiss yet, wait for dialog
             } else {
                 false
             }
         },
-        positionalThreshold = { distance -> distance * 0.25f }
+        positionalThreshold = { distance -> distance * 0.5f }
     )
     
-    // Reset dismiss state after action
-    LaunchedEffect(dismissState.currentValue) {
-        if (dismissState.currentValue != DismissValue.Default) {
+    // Reset dismiss state when dialog is dismissed
+    LaunchedEffect(showDeleteDialog) {
+        if (!showDeleteDialog && dismissState.currentValue != DismissValue.Default) {
             dismissState.reset()
         }
     }
@@ -356,10 +368,41 @@ private fun SwipeableExpenseItem(
         dismissContent = {
             ExpenseListItem(
                 expense = expense,
-                onClick = onClick
+                onClick = onClick,
+                currency = currency
             )
         }
     )
+    
+    // Delete confirmation dialog (single dialog, no double confirmation)
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showDeleteDialog = false
+            },
+            title = { Text("Delete Expense") },
+            text = { Text("Are you sure you want to delete this expense?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        onDelete() // This directly deletes, no second dialog
+                    }
+                ) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                    }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 }
 
 private fun hasActiveFilters(state: ExpenseListUiState.Success): Boolean {
@@ -376,6 +419,7 @@ private fun PaginatedExpenseList(
     onNavigateToEditExpense: (Long) -> Unit,
     onClearFilters: () -> Unit,
     onDeleteExpense: (ExpenseWithCategory) -> Unit,
+    currency: com.expensetracker.app.domain.model.Currency,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
@@ -456,7 +500,8 @@ private fun PaginatedExpenseList(
                             SwipeableExpenseItem(
                                 expense = expense,
                                 onClick = { onNavigateToEditExpense(expense.id) },
-                                onDelete = { onDeleteExpense(expense) }
+                                onDelete = { onDeleteExpense(expense) },
+                                currency = currency
                             )
                         }
                     }

@@ -21,7 +21,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -29,7 +31,8 @@ import javax.inject.Inject
 class ExpenseListViewModel @Inject constructor(
     private val getFilteredExpensesUseCase: GetFilteredExpensesUseCase,
     private val deleteExpenseUseCase: DeleteExpenseUseCase,
-    private val categoryRepository: CategoryRepository
+    private val categoryRepository: CategoryRepository,
+    private val userPreferencesManager: com.expensetracker.app.data.preferences.UserPreferencesManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<ExpenseListUiState>(ExpenseListUiState.Loading)
@@ -43,6 +46,13 @@ class ExpenseListViewModel @Inject constructor(
     
     private val _pagedExpenses = MutableStateFlow<PagingData<ExpenseWithCategory>>(PagingData.empty())
     val pagedExpenses: StateFlow<PagingData<ExpenseWithCategory>> = _pagedExpenses.asStateFlow()
+    
+    val selectedCurrency: StateFlow<com.expensetracker.app.domain.model.Currency> = userPreferencesManager.selectedCurrency
+        .stateIn(
+            scope = viewModelScope,
+            started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000),
+            initialValue = com.expensetracker.app.domain.model.Currency.INR
+        )
 
     init {
         loadExpenses()

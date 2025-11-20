@@ -9,8 +9,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.expensetracker.app.presentation.screens.AddEditExpenseScreen
+import com.expensetracker.app.presentation.screens.CategoryManagementScreen
 import com.expensetracker.app.presentation.screens.ExpenseListScreen
 import com.expensetracker.app.presentation.screens.FilterScreen
+import com.expensetracker.app.presentation.screens.SettingsScreen
 import com.expensetracker.app.presentation.screens.SummaryScreen
 import com.expensetracker.app.ui.theme.*
 
@@ -37,7 +39,18 @@ fun ExpenseTrackerNavHost(
             route = NavigationRoutes.EXPENSE_LIST,
             enterTransition = { fadeIn(animationSpec = fadeInSpec()) },
             exitTransition = { fadeOut(animationSpec = fadeOutSpec()) }
-        ) {
+        ) { backStackEntry ->
+            // Check if we're returning from add/edit with a result
+            val shouldRefresh = navController.currentBackStackEntry
+                ?.savedStateHandle
+                ?.get<Boolean>("expense_saved") ?: false
+            
+            if (shouldRefresh) {
+                navController.currentBackStackEntry
+                    ?.savedStateHandle
+                    ?.remove<Boolean>("expense_saved")
+            }
+            
             ExpenseListScreen(
                 onNavigateToAddExpense = {
                     navController.navigate(NavigationRoutes.ADD_EXPENSE)
@@ -50,7 +63,11 @@ fun ExpenseTrackerNavHost(
                 },
                 onNavigateToSummary = {
                     navController.navigate(NavigationRoutes.SUMMARY)
-                }
+                },
+                onNavigateToSettings = {
+                    navController.navigate(NavigationRoutes.SETTINGS)
+                },
+                shouldRefresh = shouldRefresh
             )
         }
         
@@ -66,6 +83,10 @@ fun ExpenseTrackerNavHost(
                     navController.popBackStack()
                 },
                 onExpenseSaved = {
+                    // Set result to trigger refresh
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set("expense_saved", true)
                     navController.popBackStack()
                 }
             )
@@ -88,6 +109,10 @@ fun ExpenseTrackerNavHost(
                     navController.popBackStack()
                 },
                 onExpenseSaved = {
+                    // Set result to trigger refresh
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set("expense_saved", true)
                     navController.popBackStack()
                 }
             )
@@ -107,6 +132,37 @@ fun ExpenseTrackerNavHost(
             SummaryScreen(
                 onNavigateBack = {
                     navController.popBackStack()
+                }
+            )
+        }
+        
+        // Category Management Screen
+        composable(
+            route = NavigationRoutes.CATEGORY_MANAGEMENT,
+            enterTransition = { slideInFromRight() },
+            exitTransition = { slideOutToLeft() },
+            popExitTransition = { slideOutToLeft() }
+        ) {
+            CategoryManagementScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        
+        // Settings Screen
+        composable(
+            route = NavigationRoutes.SETTINGS,
+            enterTransition = { slideInFromRight() },
+            exitTransition = { slideOutToLeft() },
+            popExitTransition = { slideOutToLeft() }
+        ) {
+            SettingsScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onNavigateToCategoryManagement = {
+                    navController.navigate(NavigationRoutes.CATEGORY_MANAGEMENT)
                 }
             )
         }

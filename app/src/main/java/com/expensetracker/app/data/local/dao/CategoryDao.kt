@@ -3,6 +3,7 @@ package com.expensetracker.app.data.local.dao
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Update
 import com.expensetracker.app.data.local.entity.Category
 import kotlinx.coroutines.flow.Flow
 
@@ -19,4 +20,10 @@ interface CategoryDao {
     
     @Insert
     suspend fun insertCategory(category: Category): Long
+    
+    @Update
+    suspend fun updateCategory(category: Category)
+    
+    @Query("DELETE FROM categories WHERE id = :categoryId")
+    suspend fun deleteCategory(categoryId: Long)
 }

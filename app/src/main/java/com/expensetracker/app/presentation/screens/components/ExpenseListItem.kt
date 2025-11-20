@@ -29,6 +29,7 @@ import java.util.*
 fun ExpenseListItem(
     expense: ExpenseWithCategory,
     onClick: () -> Unit,
+    currency: com.expensetracker.app.domain.model.Currency,
     modifier: Modifier = Modifier
 ) {
     val haptic = rememberHapticFeedback()
@@ -45,13 +46,16 @@ fun ExpenseListItem(
         label = "scale"
     )
     // Remember formatters to avoid recreating them on every recomposition
-    val currencyFormatter = remember { NumberFormat.getCurrencyInstance(Locale.getDefault()) }
     val dateFormatter = remember { SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()) }
     
     // Use remember for expensive string building
-    val contentDesc = remember(expense) {
+    val formattedAmount = remember(expense.amount, currency) {
+        com.expensetracker.app.util.CurrencyFormatter.format(expense.amount, currency)
+    }
+    
+    val contentDesc = remember(expense, currency) {
         buildString {
-            append("Expense: ${currencyFormatter.format(expense.amount)} ")
+            append("Expense: $formattedAmount ")
             append("for ${expense.category.name} ")
             append("on ${dateFormatter.format(Date(expense.date))}")
             if (expense.description.isNotEmpty()) {
@@ -124,7 +128,7 @@ fun ExpenseListItem(
             
             // Amount
             Text(
-                text = remember(expense.amount) { currencyFormatter.format(expense.amount) },
+                text = formattedAmount,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary

@@ -1,0 +1,24 @@
+{
+  "name": "expense-tracker-firestore-rules",
+  "version": "1.0.0",
+  "description": "Firestore security rules testing for Expense Tracker app",
+  "scripts": {
+    "test:rules": "node firestore-rules-test.js",
+    "deploy:rules": "firebase deploy --only firestore:rules",
+    "deploy:firestore": "firebase deploy --only firestore",
+    "emulator:start": "firebase emulators:start",
+    "emulator:test": "firebase emulators:exec --only firestore 'npm run test:rules'"
+  },
+  "devDependencies": {
+    "firebase-admin": "^11.11.0",
+    "@firebase/rules-unit-testing": "^2.0.7"
+  },
+  "keywords": [
+    "firebase",
+    "firestore",
+    "security-rules",
+    "testing"
+  ],
+  "author": "",
+  "license": "ISC"
+}

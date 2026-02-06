@@ -32,7 +32,8 @@ class ExpenseListViewModel @Inject constructor(
     private val getFilteredExpensesUseCase: GetFilteredExpensesUseCase,
     private val deleteExpenseUseCase: DeleteExpenseUseCase,
     private val categoryRepository: CategoryRepository,
-    private val userPreferencesManager: com.expensetracker.app.data.preferences.UserPreferencesManager
+    private val userPreferencesManager: com.expensetracker.app.data.preferences.UserPreferencesManager,
+    private val expenseSyncCoordinator: com.expensetracker.app.domain.sync.ExpenseSyncCoordinator
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<ExpenseListUiState>(ExpenseListUiState.Loading)
@@ -52,6 +53,14 @@ class ExpenseListViewModel @Inject constructor(
             scope = viewModelScope,
             started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000),
             initialValue = com.expensetracker.app.domain.model.Currency.INR
+        )
+    
+    // Sync status from coordinator
+    val syncStatus: StateFlow<com.expensetracker.app.domain.model.SyncStatus> = expenseSyncCoordinator.syncStatus
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = com.expensetracker.app.domain.model.SyncStatus.Synced
         )
 
     init {
@@ -82,6 +91,15 @@ class ExpenseListViewModel @Inject constructor(
         loadExpenses()
         // Trigger reload by updating filter criteria (even if unchanged)
         _filterCriteria.value = _filterCriteria.value.copy()
+    }
+    
+    /**
+     * Trigger manual sync
+     */
+    fun triggerManualSync() {
+        // The sync coordinator will handle the actual sync
+        // Just refresh the list to show updated sync status
+        refreshExpenses()
     }
 
     /**

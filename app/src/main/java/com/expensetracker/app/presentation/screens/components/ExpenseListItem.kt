@@ -101,11 +101,26 @@ fun ExpenseListItem(
             Column(
                 modifier = Modifier.weight(1f)
             ) {
-                Text(
-                    text = expense.category.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = expense.category.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    
+                    // Sync status indicator
+                    com.expensetracker.app.presentation.components.SyncStatusIcon(
+                        syncStatus = when (expense.syncStatus) {
+                            "SYNCED" -> com.expensetracker.app.domain.model.SyncStatus.Synced
+                            "PENDING" -> com.expensetracker.app.domain.model.SyncStatus.Pending
+                            "ERROR" -> com.expensetracker.app.domain.model.SyncStatus.Error("Sync failed")
+                            else -> com.expensetracker.app.domain.model.SyncStatus.Pending
+                        }
+                    )
+                }
                 
                 if (expense.description.isNotEmpty()) {
                     Text(

@@ -40,7 +40,8 @@ class ExpenseRepositoryImpl @Inject constructor(
                                 date = expense.date,
                                 description = expense.description,
                                 createdAt = expense.createdAt,
-                                updatedAt = expense.updatedAt
+                                updatedAt = expense.updatedAt,
+                                syncStatus = expense.syncStatus
                             )
                         }
                     }
@@ -83,7 +84,8 @@ class ExpenseRepositoryImpl @Inject constructor(
                                 date = expense.date,
                                 description = expense.description,
                                 createdAt = expense.createdAt,
-                                updatedAt = expense.updatedAt
+                                updatedAt = expense.updatedAt,
+                                syncStatus = expense.syncStatus
                             )
                         }
                     }
@@ -112,7 +114,8 @@ class ExpenseRepositoryImpl @Inject constructor(
                                 date = expense.date,
                                 description = expense.description,
                                 createdAt = expense.createdAt,
-                                updatedAt = expense.updatedAt
+                                updatedAt = expense.updatedAt,
+                                syncStatus = expense.syncStatus
                             )
                         }
                     }
@@ -130,8 +133,16 @@ class ExpenseRepositoryImpl @Inject constructor(
     override suspend fun addExpense(expense: Expense): Result<Long> {
         return try {
             Log.d(TAG, "Adding expense: amount=${expense.amount}, categoryId=${expense.categoryId}")
-            val id = expenseDao.insertExpense(expense)
+            
+            // Set sync status to PENDING and update modifiedAt timestamp
+            val expenseWithSync = expense.copy(
+                syncStatus = "PENDING",
+                modifiedAt = System.currentTimeMillis()
+            )
+            
+            val id = expenseDao.insertExpense(expenseWithSync)
             Log.d(TAG, "Expense added successfully with id: $id")
+            
             Result.Success(id)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to add expense", e)
@@ -145,8 +156,16 @@ class ExpenseRepositoryImpl @Inject constructor(
     override suspend fun updateExpense(expense: Expense): Result<Unit> {
         return try {
             Log.d(TAG, "Updating expense: id=${expense.id}, amount=${expense.amount}")
-            expenseDao.updateExpense(expense)
+            
+            // Set sync status to PENDING and update modifiedAt timestamp
+            val expenseWithSync = expense.copy(
+                syncStatus = "PENDING",
+                modifiedAt = System.currentTimeMillis()
+            )
+            
+            expenseDao.updateExpense(expenseWithSync)
             Log.d(TAG, "Expense updated successfully")
+            
             Result.Success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to update expense with id: ${expense.id}", e)
@@ -160,8 +179,14 @@ class ExpenseRepositoryImpl @Inject constructor(
     override suspend fun deleteExpense(expense: Expense): Result<Unit> {
         return try {
             Log.d(TAG, "Deleting expense: id=${expense.id}")
+            
+            // Delete from local database
             expenseDao.deleteExpense(expense)
-            Log.d(TAG, "Expense deleted successfully")
+            Log.d(TAG, "Expense deleted from local database")
+            
+            // Note: Firestore sync for deletion should be handled by the caller
+            // by calling ExpenseSyncCoordinator.markExpenseAsDeleted()
+            
             Result.Success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to delete expense with id: ${expense.id}", e)
@@ -179,6 +204,56 @@ class ExpenseRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "Failed to fetch expense by id: $id", e)
             null
+        }
+    }
+    
+    override suspend fun getExpenseByFirestoreId(firestoreId: String): Expense? {
+        return try {
+            Log.d(TAG, "Fetching expense by Firestore ID: $firestoreId")
+            expenseDao.getExpenseByFirestoreId(firestoreId)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to fetch expense by Firestore ID: $firestoreId", e)
+            null
+        }
+    }
+    
+    override suspend fun getAllExpensesOnce(): List<Expense> {
+        return try {
+            Log.d(TAG, "Fetching all expenses once")
+            expenseDao.getAllExpensesOnce()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to fetch all expenses", e)
+            emptyList()
+        }
+    }
+    
+    override suspend fun updateExpenseWithoutSync(expense: Expense): Result<Unit> {
+        return try {
+            Log.d(TAG, "Updating expense without sync: id=${expense.id}")
+            expenseDao.updateExpense(expense)
+            Log.d(TAG, "Expense updated successfully without triggering sync")
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to update expense without sync: ${expense.id}", e)
+            Result.Error(
+                exception = e,
+                message = "Unable to update expense. Please try again."
+            )
+        }
+    }
+    
+    override suspend fun addExpenseWithoutSync(expense: Expense): Result<Long> {
+        return try {
+            Log.d(TAG, "Adding expense without sync: amount=${expense.amount}, categoryId=${expense.categoryId}")
+            val id = expenseDao.insertExpense(expense)
+            Log.d(TAG, "Expense added successfully with id: $id (no sync triggered)")
+            Result.Success(id)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to add expense without sync", e)
+            Result.Error(
+                exception = e,
+                message = "Unable to save expense. Please try again."
+            )
         }
     }
 }

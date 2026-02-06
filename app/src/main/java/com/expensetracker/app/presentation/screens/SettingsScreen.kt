@@ -16,12 +16,14 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.expensetracker.app.domain.model.Currency
 import com.expensetracker.app.presentation.viewmodel.SettingsViewModel
+import com.expensetracker.app.presentation.viewmodel.LeaveHouseholdState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToCategoryManagement: () -> Unit,
+    onNavigateToHousehold: () -> Unit,
     onSignOut: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel(),
     authViewModel: com.expensetracker.app.presentation.viewmodel.AuthViewModel = hiltViewModel()
@@ -29,9 +31,13 @@ fun SettingsScreen(
     val selectedCurrency by viewModel.selectedCurrency.collectAsStateWithLifecycle()
     val exportState by viewModel.exportState.collectAsStateWithLifecycle()
     val authState by authViewModel.authState.collectAsStateWithLifecycle()
+    val household by viewModel.household.collectAsStateWithLifecycle()
+    val syncStatus by viewModel.syncStatus.collectAsStateWithLifecycle()
+    val leaveHouseholdState by viewModel.leaveHouseholdState.collectAsStateWithLifecycle()
     val context = androidx.compose.ui.platform.LocalContext.current
     
     var showSignOutDialog by remember { mutableStateOf(false) }
+    var showLeaveHouseholdDialog by remember { mutableStateOf(false) }
     
     // Handle export state
     LaunchedEffect(exportState) {
@@ -114,6 +120,121 @@ fun SettingsScreen(
                         }
                     }
                     else -> {}
+                }
+            }
+            
+            // Household Section
+            if (household != null) {
+                item {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Household",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+                }
+                
+                item {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(onClick = onNavigateToHousehold)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = household!!.name,
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                                Text(
+                                    text = "${household!!.memberIds.size} members",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+                
+                // Sync Status
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Sync Status",
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                                Text(
+                                    text = when (syncStatus) {
+                                        is com.expensetracker.app.domain.model.SyncStatus.Synced -> "All changes synced"
+                                        is com.expensetracker.app.domain.model.SyncStatus.Syncing -> "Syncing..."
+                                        is com.expensetracker.app.domain.model.SyncStatus.Error -> "Sync error"
+                                        is com.expensetracker.app.domain.model.SyncStatus.Offline -> "Offline"
+                                        is com.expensetracker.app.domain.model.SyncStatus.Pending -> "Pending sync"
+                                    },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            
+                            com.expensetracker.app.presentation.components.SyncStatusIndicator(
+                                syncStatus = syncStatus,
+                                showText = false
+                            )
+                        }
+                    }
+                }
+                
+                // Leave Household
+                item {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(
+                                enabled = leaveHouseholdState !is LeaveHouseholdState.Loading,
+                                onClick = { showLeaveHouseholdDialog = true }
+                            )
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Leave Household",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                                Text(
+                                    text = "Remove yourself from this household",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            
+                            if (leaveHouseholdState is LeaveHouseholdState.Loading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
+                    }
                 }
             }
             
@@ -242,6 +363,45 @@ fun SettingsScreen(
                     }
                 }
             )
+        }
+        
+        // Leave Household Confirmation Dialog
+        if (showLeaveHouseholdDialog) {
+            AlertDialog(
+                onDismissRequest = { showLeaveHouseholdDialog = false },
+                title = { Text("Leave Household") },
+                text = { Text("Are you sure you want to leave this household? You will no longer have access to shared expenses.") },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showLeaveHouseholdDialog = false
+                            viewModel.leaveHousehold()
+                        }
+                    ) {
+                        Text("Leave", color = MaterialTheme.colorScheme.error)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showLeaveHouseholdDialog = false }) {
+                        Text("Cancel")
+                    }
+                }
+            )
+        }
+    }
+    
+    // Handle leave household state
+    LaunchedEffect(leaveHouseholdState) {
+        when (val state = leaveHouseholdState) {
+            is LeaveHouseholdState.Success -> {
+                android.widget.Toast.makeText(context, "Left household successfully", android.widget.Toast.LENGTH_SHORT).show()
+                viewModel.resetLeaveHouseholdState()
+            }
+            is LeaveHouseholdState.Error -> {
+                android.widget.Toast.makeText(context, state.message, android.widget.Toast.LENGTH_LONG).show()
+                viewModel.resetLeaveHouseholdState()
+            }
+            else -> {}
         }
     }
 }

@@ -5,6 +5,8 @@ package com.expensetracker.app.presentation.navigation
  */
 object NavigationRoutes {
     const val SIGN_IN = "sign_in"
+    const val HOUSEHOLD_SETUP = "household_setup"
+    const val HOUSEHOLD = "household"
     const val EXPENSE_LIST = "expense_list"
     const val ADD_EXPENSE = "add_expense"
     const val EDIT_EXPENSE = "edit_expense/{expenseId}"

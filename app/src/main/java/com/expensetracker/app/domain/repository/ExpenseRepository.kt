@@ -15,4 +15,8 @@ interface ExpenseRepository {
     suspend fun updateExpense(expense: Expense): Result<Unit>
     suspend fun deleteExpense(expense: Expense): Result<Unit>
     suspend fun getExpenseById(id: Long): Expense?
+    suspend fun getExpenseByFirestoreId(firestoreId: String): Expense?
+    suspend fun getAllExpensesOnce(): List<Expense>
+    suspend fun updateExpenseWithoutSync(expense: Expense): Result<Unit>
+    suspend fun addExpenseWithoutSync(expense: Expense): Result<Long>
 }

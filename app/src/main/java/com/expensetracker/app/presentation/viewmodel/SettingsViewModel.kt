@@ -16,7 +16,9 @@ import javax.inject.Inject
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val userPreferencesManager: UserPreferencesManager,
-    private val exportExpensesUseCase: com.expensetracker.app.domain.usecase.ExportExpensesUseCase
+    private val exportExpensesUseCase: com.expensetracker.app.domain.usecase.ExportExpensesUseCase,
+    private val householdManager: com.expensetracker.app.domain.usecase.HouseholdManager,
+    private val expenseSyncCoordinator: com.expensetracker.app.domain.sync.ExpenseSyncCoordinator
 ) : ViewModel() {
 
     val selectedCurrency: StateFlow<Currency> = userPreferencesManager.selectedCurrency
@@ -28,6 +30,25 @@ class SettingsViewModel @Inject constructor(
     
     private val _exportState = MutableStateFlow<ExportState>(ExportState.Idle)
     val exportState: StateFlow<ExportState> = _exportState.asStateFlow()
+    
+    // Household state
+    val household: StateFlow<com.expensetracker.app.domain.model.Household?> = householdManager.currentHousehold
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = null
+        )
+    
+    // Sync status
+    val syncStatus: StateFlow<com.expensetracker.app.domain.model.SyncStatus> = expenseSyncCoordinator.syncStatus
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = com.expensetracker.app.domain.model.SyncStatus.Synced
+        )
+    
+    private val _leaveHouseholdState = MutableStateFlow<LeaveHouseholdState>(LeaveHouseholdState.Idle)
+    val leaveHouseholdState: StateFlow<LeaveHouseholdState> = _leaveHouseholdState.asStateFlow()
 
     fun setCurrency(currency: Currency) {
         viewModelScope.launch {
@@ -53,6 +74,25 @@ class SettingsViewModel @Inject constructor(
     fun resetExportState() {
         _exportState.value = ExportState.Idle
     }
+    
+    fun leaveHousehold() {
+        viewModelScope.launch {
+            _leaveHouseholdState.value = LeaveHouseholdState.Loading
+            
+            when (val result = householdManager.leaveHousehold()) {
+                is com.expensetracker.app.domain.model.Result.Success -> {
+                    _leaveHouseholdState.value = LeaveHouseholdState.Success
+                }
+                is com.expensetracker.app.domain.model.Result.Error -> {
+                    _leaveHouseholdState.value = LeaveHouseholdState.Error(result.message)
+                }
+            }
+        }
+    }
+    
+    fun resetLeaveHouseholdState() {
+        _leaveHouseholdState.value = LeaveHouseholdState.Idle
+    }
 }
 
 sealed class ExportState {
@@ -60,4 +100,11 @@ sealed class ExportState {
     object Loading : ExportState()
     data class Success(val csvContent: String) : ExportState()
     data class Error(val message: String) : ExportState()
+}
+
+sealed class LeaveHouseholdState {
+    object Idle : LeaveHouseholdState()
+    object Loading : LeaveHouseholdState()
+    object Success : LeaveHouseholdState()
+    data class Error(val message: String) : LeaveHouseholdState()
 }

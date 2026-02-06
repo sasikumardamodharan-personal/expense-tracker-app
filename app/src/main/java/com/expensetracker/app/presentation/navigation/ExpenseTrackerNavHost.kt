@@ -12,6 +12,7 @@ import com.expensetracker.app.presentation.screens.AddEditExpenseScreen
 import com.expensetracker.app.presentation.screens.CategoryManagementScreen
 import com.expensetracker.app.presentation.screens.ExpenseListScreen
 import com.expensetracker.app.presentation.screens.FilterScreen
+import com.expensetracker.app.presentation.screens.HouseholdSetupScreen
 import com.expensetracker.app.presentation.screens.SettingsScreen
 import com.expensetracker.app.presentation.screens.SignInScreen
 import com.expensetracker.app.presentation.screens.SummaryScreen
@@ -44,8 +45,23 @@ fun ExpenseTrackerNavHost(
         ) {
             SignInScreen(
                 onSignInSuccess = {
-                    navController.navigate(NavigationRoutes.EXPENSE_LIST) {
+                    navController.navigate(NavigationRoutes.HOUSEHOLD_SETUP) {
                         popUpTo(NavigationRoutes.SIGN_IN) { inclusive = true }
+                    }
+                }
+            )
+        }
+        
+        // Household Setup Screen
+        composable(
+            route = NavigationRoutes.HOUSEHOLD_SETUP,
+            enterTransition = { fadeIn(animationSpec = fadeInSpec()) },
+            exitTransition = { fadeOut(animationSpec = fadeOutSpec()) }
+        ) {
+            HouseholdSetupScreen(
+                onSetupComplete = {
+                    navController.navigate(NavigationRoutes.EXPENSE_LIST) {
+                        popUpTo(NavigationRoutes.HOUSEHOLD_SETUP) { inclusive = true }
                     }
                 }
             )
@@ -167,6 +183,20 @@ fun ExpenseTrackerNavHost(
             )
         }
         
+        // Household Screen
+        composable(
+            route = NavigationRoutes.HOUSEHOLD,
+            enterTransition = { slideInFromRight() },
+            exitTransition = { slideOutToLeft() },
+            popExitTransition = { slideOutToLeft() }
+        ) {
+            com.expensetracker.app.presentation.screens.HouseholdScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        
         // Settings Screen
         composable(
             route = NavigationRoutes.SETTINGS,
@@ -180,6 +210,9 @@ fun ExpenseTrackerNavHost(
                 },
                 onNavigateToCategoryManagement = {
                     navController.navigate(NavigationRoutes.CATEGORY_MANAGEMENT)
+                },
+                onNavigateToHousehold = {
+                    navController.navigate(NavigationRoutes.HOUSEHOLD)
                 },
                 onSignOut = {
                     navController.navigate(NavigationRoutes.SIGN_IN) {

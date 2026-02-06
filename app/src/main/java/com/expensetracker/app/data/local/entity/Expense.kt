@@ -9,7 +9,9 @@ import androidx.room.PrimaryKey
     tableName = "expenses",
     indices = [
         Index(value = ["date"]),
-        Index(value = ["category_id"])
+        Index(value = ["category_id"]),
+        Index(value = ["firestore_id"]),
+        Index(value = ["sync_status"])
     ]
 )
 data class Expense(
@@ -32,5 +34,21 @@ data class Expense(
     val createdAt: Long,
     
     @ColumnInfo(name = "updated_at")
-    val updatedAt: Long
+    val updatedAt: Long,
+    
+    // Sync-related fields
+    @ColumnInfo(name = "firestore_id")
+    val firestoreId: String? = null,
+    
+    @ColumnInfo(name = "modified_at")
+    val modifiedAt: Long = System.currentTimeMillis(),
+    
+    @ColumnInfo(name = "created_by")
+    val createdBy: String? = null,
+    
+    @ColumnInfo(name = "modified_by")
+    val modifiedBy: String? = null,
+    
+    @ColumnInfo(name = "sync_status")
+    val syncStatus: String = "PENDING" // PENDING, SYNCED, ERROR
 )

@@ -14,6 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -46,9 +47,13 @@ fun ExpenseListScreen(
     val pagedExpenses = viewModel.pagedExpenses.collectAsLazyPagingItems()
     val filterCriteria by viewModel.filterCriteria.collectAsStateWithLifecycle()
     val selectedCurrency by viewModel.selectedCurrency.collectAsStateWithLifecycle()
+    val syncStatus by viewModel.syncStatus.collectAsStateWithLifecycle()
     
     val context = LocalContext.current
     val haptic = com.expensetracker.app.util.rememberHapticFeedback()
+    
+    // Refresh state
+    var isRefreshing by remember { mutableStateOf(false) }
     
     // Use derivedStateOf for expensive calculations to avoid unnecessary recomposition
     val usePagination by remember {
@@ -57,6 +62,14 @@ fun ExpenseListScreen(
             filterCriteria.endDate == null && 
             filterCriteria.categoryIds.isEmpty()
         }
+    }
+    
+    // Manual refresh function
+    fun performRefresh() {
+        isRefreshing = true
+        viewModel.triggerManualSync()
+        pagedExpenses.refresh()
+        isRefreshing = false
     }
     
     LaunchedEffect(Unit) {
@@ -152,11 +165,20 @@ fun ExpenseListScreen(
             }
         }
     ) { paddingValues ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            // Show offline banner when offline
+            if (syncStatus is com.expensetracker.app.domain.model.SyncStatus.Offline) {
+                com.expensetracker.app.presentation.components.OfflineBanner()
+            }
+            
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+            ) {
             if (usePagination) {
                 // Use pagination when no filters are active
                 PaginatedExpenseList(
@@ -251,6 +273,9 @@ fun ExpenseListScreen(
                         )
                     }
                 }
+            }
+            
+            // Refresh indicator removed - use refresh button in top bar instead
             }
         }
     }

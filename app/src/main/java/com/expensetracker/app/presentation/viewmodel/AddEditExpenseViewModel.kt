@@ -27,6 +27,7 @@ class AddEditExpenseViewModel @Inject constructor(
     private val updateExpenseUseCase: UpdateExpenseUseCase,
     private val categoryRepository: CategoryRepository,
     private val expenseRepository: ExpenseRepository,
+    private val expenseSyncCoordinator: com.expensetracker.app.domain.sync.ExpenseSyncCoordinator,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -219,7 +220,27 @@ class AddEditExpenseViewModel @Inject constructor(
             _uiState.value = state.copy(isSaving = false)
 
             when (result) {
-                is Result.Success -> {
+                is Result.Success<*> -> {
+                    // Trigger sync to Firestore
+                    val expenseIdToSync = if (state.isEditMode) {
+                        state.expenseId!!
+                    } else {
+                        result.data as Long
+                    }
+                    
+                    android.util.Log.d("DEBUG_SYNC", "=== SAVE SUCCESS ===")
+                    android.util.Log.d("DEBUG_SYNC", "Expense ID to sync: $expenseIdToSync")
+                    
+                    val savedExpense = expenseRepository.getExpenseById(expenseIdToSync)
+                    android.util.Log.d("DEBUG_SYNC", "Retrieved expense: $savedExpense")
+                    
+                    if (savedExpense != null) {
+                        android.util.Log.d("DEBUG_SYNC", "Calling syncExpenseToCloud...")
+                        expenseSyncCoordinator.syncExpenseToCloud(savedExpense)
+                    } else {
+                        android.util.Log.e("DEBUG_SYNC", "ERROR: savedExpense is null!")
+                    }
+                    
                     _saveSuccess.emit(true)
                 }
                 is Result.Error -> {

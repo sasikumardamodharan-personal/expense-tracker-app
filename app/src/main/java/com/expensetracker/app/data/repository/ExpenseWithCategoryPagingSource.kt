@@ -38,7 +38,8 @@ class ExpenseWithCategoryPagingSource(
                             date = expense.date,
                             description = expense.description,
                             createdAt = expense.createdAt,
-                            updatedAt = expense.updatedAt
+                            updatedAt = expense.updatedAt,
+                            syncStatus = expense.syncStatus
                         )
                     }
                 } catch (e: Exception) {

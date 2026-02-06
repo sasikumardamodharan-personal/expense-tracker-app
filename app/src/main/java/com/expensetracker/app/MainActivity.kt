@@ -20,9 +20,17 @@ import com.expensetracker.app.presentation.navigation.NavigationRoutes
 import com.expensetracker.app.presentation.viewmodel.AuthViewModel
 import com.expensetracker.app.ui.theme.ExpenseTrackerTheme
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    
+    @Inject
+    lateinit var expenseSyncCoordinator: com.expensetracker.app.domain.sync.ExpenseSyncCoordinator
+    
+    @Inject
+    lateinit var categorySyncCoordinator: com.expensetracker.app.domain.sync.CategorySyncCoordinator
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -33,9 +41,28 @@ class MainActivity : ComponentActivity() {
                 ) {
                     val authViewModel: AuthViewModel = hiltViewModel()
                     val authState by authViewModel.authState.collectAsStateWithLifecycle()
+                    val settingsViewModel: com.expensetracker.app.presentation.viewmodel.SettingsViewModel = hiltViewModel()
+                    val household by settingsViewModel.household.collectAsStateWithLifecycle()
                     val navController = rememberNavController()
                     
-                    // Determine start destination based on auth state
+                    // Start sync coordinators when household is set up
+                    androidx.compose.runtime.LaunchedEffect(household) {
+                        android.util.Log.d("DEBUG_SYNC", "=== MainActivity LaunchedEffect ===")
+                        android.util.Log.d("DEBUG_SYNC", "Household: $household")
+                        
+                        if (household != null) {
+                            android.util.Log.d("DEBUG_SYNC", "Starting sync coordinators...")
+                            expenseSyncCoordinator.startSync()
+                            categorySyncCoordinator.startSync()
+                            android.util.Log.d("DEBUG_SYNC", "Sync coordinators started")
+                        } else {
+                            android.util.Log.d("DEBUG_SYNC", "Stopping sync coordinators...")
+                            expenseSyncCoordinator.stopSync()
+                            categorySyncCoordinator.stopSync()
+                        }
+                    }
+                    
+                    // Determine start destination based on auth state and household setup
                     when (authState) {
                         is AuthState.Loading -> {
                             Box(
@@ -46,9 +73,16 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                         is AuthState.Authenticated -> {
+                            // Check if household is set up
+                            val startDestination = if (household == null) {
+                                NavigationRoutes.HOUSEHOLD_SETUP
+                            } else {
+                                NavigationRoutes.EXPENSE_LIST
+                            }
+                            
                             ExpenseTrackerNavHost(
                                 navController = navController,
-                                startDestination = NavigationRoutes.EXPENSE_LIST,
+                                startDestination = startDestination,
                                 modifier = Modifier.fillMaxSize()
                             )
                         }

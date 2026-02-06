@@ -15,6 +15,9 @@ interface ExpenseDao {
     fun getAllExpenses(): Flow<List<Expense>>
     
     @Query("SELECT * FROM expenses ORDER BY date DESC")
+    suspend fun getAllExpensesOnce(): List<Expense>
+    
+    @Query("SELECT * FROM expenses ORDER BY date DESC")
     fun getAllExpensesPaged(): PagingSource<Int, Expense>
     
     @Query("SELECT * FROM expenses ORDER BY date DESC LIMIT :limit OFFSET :offset")
@@ -28,6 +31,9 @@ interface ExpenseDao {
     
     @Query("SELECT * FROM expenses WHERE id = :id")
     suspend fun getExpenseById(id: Long): Expense?
+    
+    @Query("SELECT * FROM expenses WHERE firestore_id = :firestoreId")
+    suspend fun getExpenseByFirestoreId(firestoreId: String): Expense?
     
     @Insert
     suspend fun insertExpense(expense: Expense): Long

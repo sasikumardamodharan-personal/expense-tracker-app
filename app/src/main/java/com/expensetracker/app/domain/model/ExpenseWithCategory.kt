@@ -9,5 +9,6 @@ data class ExpenseWithCategory(
     val date: Long,
     val description: String,
     val createdAt: Long,
-    val updatedAt: Long
+    val updatedAt: Long,
+    val syncStatus: String = "PENDING" // PENDING, SYNCED, ERROR
 )

@@ -48,8 +48,15 @@ class CategoryRepositoryImpl @Inject constructor(
                 )
             }
             
-            val id = categoryDao.insertCategory(category)
+            // Set sync status to PENDING and update modifiedAt timestamp
+            val categoryWithSync = category.copy(
+                syncStatus = "PENDING",
+                modifiedAt = System.currentTimeMillis()
+            )
+            
+            val id = categoryDao.insertCategory(categoryWithSync)
             Log.d(TAG, "Category added successfully with id: $id")
+            
             Result.Success(id)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to add category: ${category.name}", e)
@@ -92,8 +99,15 @@ class CategoryRepositoryImpl @Inject constructor(
                 )
             }
             
-            categoryDao.updateCategory(category)
+            // Set sync status to PENDING and update modifiedAt timestamp
+            val categoryWithSync = category.copy(
+                syncStatus = "PENDING",
+                modifiedAt = System.currentTimeMillis()
+            )
+            
+            categoryDao.updateCategory(categoryWithSync)
             Log.d(TAG, "Category updated successfully: ${category.name}")
+            
             Result.Success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to update category: ${category.name}", e)
@@ -107,7 +121,20 @@ class CategoryRepositoryImpl @Inject constructor(
     override suspend fun deleteCategory(categoryId: Long): Result<Unit> {
         return try {
             Log.d(TAG, "Deleting category with id: $categoryId")
+            
+            // Get the category before deleting
+            val category = categoryDao.getCategoryById(categoryId)
+            if (category == null) {
+                Log.w(TAG, "Category not found: $categoryId")
+                return Result.Error(
+                    Exception("Category not found"),
+                    "Category does not exist"
+                )
+            }
+            
+            // Delete from local database
             categoryDao.deleteCategory(categoryId)
+            
             Log.d(TAG, "Category deleted successfully")
             Result.Success(Unit)
         } catch (e: Exception) {
